@@ -1,0 +1,99 @@
+name: Bug 报告
+description: 报告项目中发现的缺陷
+title: "[BUG] "
+labels: ["bug", "needs-triage"]
+assignees:
+  - tangjianfang
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🐛 Bug 报告模板
+        感谢你报告 Bug！请尽可能提供详细信息以便快速定位问题。
+
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: Bug 描述
+      description: 清晰简洁地描述遇到的问题
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce-steps
+    attributes:
+      label: 复现步骤
+      description: 逐步描述如何复现这个 Bug
+      value: |
+        1. 
+        2. 
+        3. 
+        4. 看到错误...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: 期望行为
+      description: 描述正确的预期行为应该是什么
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: 实际行为
+      description: 描述实际发生了什么（包括错误信息、日志等）
+    validations:
+      required: true
+
+  - type: dropdown
+    id: affected-service
+    attributes:
+      label: 影响的服务/模块
+      options:
+        - gateway（API 网关）
+        - auth-service（认证服务）
+        - tool-registry（工具注册中心）
+        - shared/logger（日志模块）
+        - shared/cache（缓存模块）
+        - infrastructure（基础设施）
+        - CI/CD（构建流水线）
+        - 文档
+        - 其他
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: 严重程度
+      options:
+        - Critical（系统不可用）
+        - High（核心功能受损）
+        - Medium（功能受影响但有临时方案）
+        - Low（轻微问题）
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 环境信息
+      value: |
+        - OS:
+        - Node.js 版本:
+        - pnpm 版本:
+        - Docker 版本:
+        - 分支/提交:
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: 补充信息
+      description: 日志、截图、相关代码片段等
+    validations:
+      required: false

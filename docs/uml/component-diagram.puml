@@ -1,0 +1,118 @@
+@startuml 微服务组件图
+
+' 考点：UML 组件图 (Component Diagram)
+' 描述：在线工具聚合平台微服务组件关系
+' 作者：architect-exam-lab
+
+title 在线工具聚合平台 - 组件图
+
+skinparam component {
+  BackgroundColor LightYellow
+  BorderColor DarkOrange
+  ArrowColor DarkBlue
+}
+skinparam interface {
+  BackgroundColor White
+  BorderColor DarkBlue
+}
+
+' ─── 外部系统 ─────────────────────────────────────
+actor "Client\n(Browser/CLI/App)" as Client
+
+' ─── API Gateway 组件 ─────────────────────────────
+package "API Gateway Package" {
+  [API Gateway\n(Express)] as Gateway
+
+  component "中间件管道" {
+    [Auth Middleware\n(JWT验证)] as AuthMW
+    [Rate Limiter\n(令牌桶算法)] as RateLimiter
+    [Circuit Breaker\n(熔断器/状态机)] as CircuitBreaker
+    [Request Logger\n(结构化日志)] as Logger
+  }
+
+  [HTTP Proxy\n(请求转发)] as Proxy
+}
+
+' ─── Auth Service 组件 ─────────────────────────────
+package "Auth Service Package" {
+  [Auth Controller\n(HTTP层)] as AuthCtrl
+  [Auth Service\n(业务逻辑)] as AuthSvc
+  [User Repository\n(数据访问)] as UserRepo
+}
+
+' ─── Tool Registry 组件 ─────────────────────────────
+package "Tool Registry Package" {
+  [Registry Controller\n(HTTP层)] as RegCtrl
+  [Registry Service\n(业务逻辑)] as RegSvc
+  [Tool Repository\n(数据访问)] as ToolRepo
+  [Health Checker\n(定期健康检查)] as HealthChecker
+}
+
+' ─── 共享模块 ─────────────────────────────────────
+package "Shared Modules" {
+  [Logger\n(适配器+单例模式)] as SharedLogger
+  [Cache Abstraction\n(策略模式)] as CacheAbs
+  [Shared Types\n(类型定义)] as SharedTypes
+}
+
+' ─── 基础设施 ─────────────────────────────────────
+database "PostgreSQL" as PG
+database "Redis" as Redis
+
+' ─── 接口定义 ─────────────────────────────────────
+interface "REST :3000" as GatewayAPI
+interface "REST :3001" as AuthAPI
+interface "REST :3002" as RegistryAPI
+
+' ─── 组件关系 ────────────────────────────────────
+Client --> GatewayAPI : HTTPS
+
+GatewayAPI - Gateway
+Gateway --> AuthMW
+AuthMW --> RateLimiter
+RateLimiter --> CircuitBreaker
+CircuitBreaker --> Proxy
+Gateway --> Logger
+
+Proxy --> AuthAPI : HTTP
+Proxy --> RegistryAPI : HTTP
+
+AuthAPI - AuthCtrl
+AuthCtrl --> AuthSvc
+AuthSvc --> UserRepo
+UserRepo --> PG
+
+RegistryAPI - RegCtrl
+RegCtrl --> RegSvc
+RegSvc --> ToolRepo
+ToolRepo --> PG
+HealthChecker --> PG
+
+Gateway --> CacheAbs : 路由缓存
+AuthSvc --> CacheAbs : Token黑名单
+RateLimiter --> CacheAbs : 限流计数
+
+CacheAbs --> Redis : Redis实现
+CacheAbs --> SharedTypes
+
+SharedLogger <-- Gateway
+SharedLogger <-- AuthSvc
+SharedLogger <-- RegSvc
+
+' ─── 注释 ──────────────────────────────────────────
+note bottom of CacheAbs
+  设计模式：策略模式 (Strategy Pattern)
+  MemoryCache (测试环境) / RedisCache (生产环境) 可切换
+end note
+
+note bottom of SharedLogger
+  设计模式：单例模式 + 适配器模式
+  统一日志接口，屏蔽底层实现
+end note
+
+note right of CircuitBreaker
+  设计模式：状态机模式
+  CLOSED → OPEN → HALF-OPEN → CLOSED
+end note
+
+@enduml

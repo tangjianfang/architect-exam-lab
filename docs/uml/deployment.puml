@@ -1,0 +1,139 @@
+@startuml 部署图
+
+' 考点：UML 部署图 (Deployment Diagram)
+' 描述：在线工具聚合平台容器化部署拓扑
+' 作者：architect-exam-lab
+
+title 在线工具聚合平台 - 部署图（生产环境 Kubernetes）
+
+skinparam node {
+  BackgroundColor LightGreen
+  BorderColor DarkGreen
+}
+skinparam component {
+  BackgroundColor LightYellow
+  BorderColor DarkOrange
+}
+skinparam database {
+  BackgroundColor LightBlue
+  BorderColor DarkBlue
+}
+
+' ─── 客户端层 ─────────────────────────────────────
+node "Client Devices" {
+  component "Browser / App / CLI" as Client
+}
+
+' ─── CDN/负载均衡层 ───────────────────────────────
+node "Cloud Load Balancer\n(AWS ALB / Nginx)" as LB {
+  component "SSL Termination\n(HTTPS → HTTP)" as SSL
+}
+
+' ─── Kubernetes Cluster ────────────────────────────
+node "Kubernetes Cluster" {
+
+  node "Namespace: toollab-prod" {
+
+    node "Node: worker-1" {
+      node "Pod: gateway-pod-1" {
+        component "gateway\ncontainer\n:3000" as GW1
+      }
+      node "Pod: auth-pod-1" {
+        component "auth-service\ncontainer\n:3001" as Auth1
+      }
+    }
+
+    node "Node: worker-2" {
+      node "Pod: gateway-pod-2\n(副本)" {
+        component "gateway\ncontainer\n:3000" as GW2
+      }
+      node "Pod: registry-pod-1" {
+        component "tool-registry\ncontainer\n:3002" as Reg1
+      }
+    }
+
+    node "K8s Services (ClusterIP)" {
+      component "gateway-svc\n:3000" as GWSvc
+      component "auth-svc\n:3001" as AuthSvc
+      component "registry-svc\n:3002" as RegSvc
+    }
+
+    node "K8s Ingress" {
+      component "Nginx Ingress\nController" as Ingress
+    }
+  }
+
+  node "Namespace: toollab-infra" {
+
+    node "Node: db-1 (StatefulSet)" {
+      database "PostgreSQL\n5432\nPersistentVolume: 20Gi" as PG
+    }
+
+    node "Node: cache-1 (StatefulSet)" {
+      database "Redis\n6379\nPersistentVolume: 5Gi" as Redis
+    }
+  }
+
+}
+
+' ─── 镜像仓库 ─────────────────────────────────────
+node "Container Registry\n(GitHub Container Registry)" {
+  component "toollab/gateway:v1.0.0" as ImgGW
+  component "toollab/auth-service:v1.0.0" as ImgAuth
+  component "toollab/tool-registry:v1.0.0" as ImgReg
+}
+
+' ─── CI/CD ─────────────────────────────────────────
+node "GitHub Actions\n(CI/CD Runner)" {
+  component "Build & Push\nWorkflow" as CICD
+}
+
+' ─── 关系 ──────────────────────────────────────────
+Client --> LB : HTTPS:443
+SSL --> Ingress : HTTP:80
+
+Ingress --> GWSvc : /api/*
+GWSvc --> GW1 : 负载均衡
+GWSvc --> GW2 : 负载均衡
+
+GW1 --> AuthSvc : HTTP
+GW1 --> RegSvc : HTTP
+GW2 --> AuthSvc : HTTP
+GW2 --> RegSvc : HTTP
+
+AuthSvc --> Auth1
+RegSvc --> Reg1
+
+Auth1 --> PG : JDBC/5432
+Auth1 --> Redis : Redis/6379
+Reg1 --> PG : JDBC/5432
+GW1 --> Redis : Redis/6379
+GW2 --> Redis : Redis/6379
+
+CICD --> ImgGW : docker push
+CICD --> ImgAuth : docker push
+CICD --> ImgReg : docker push
+
+ImgGW --> GW1 : pull image
+ImgAuth --> Auth1 : pull image
+ImgReg --> Reg1 : pull image
+
+' ─── 注释 ──────────────────────────────────────────
+note bottom of LB
+  考点：负载均衡
+  轮询 / 最小连接数 / IP哈希 算法
+end note
+
+note bottom of Ingress
+  考点：K8s Ingress
+  基于路径的路由规则
+  TLS 终止
+end note
+
+note right of PG
+  考点：有状态服务部署
+  使用 StatefulSet 而非 Deployment
+  PersistentVolumeClaim 持久化数据
+end note
+
+@enduml

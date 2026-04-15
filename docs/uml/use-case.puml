@@ -1,0 +1,107 @@
+@startuml 系统用例图
+
+' 考点：UML 用例图 (Use Case Diagram)
+' 描述：在线工具聚合平台的核心用例
+' 作者：architect-exam-lab
+
+title 在线工具聚合平台 - 系统用例图
+
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor LightYellow
+  BorderColor DarkOrange
+  ArrowColor DarkOrange
+}
+
+' ─── 参与者定义 ─────────────────────────────────────
+actor "访客\n(Guest)" as Guest
+actor "注册用户\n(User)" as User
+actor "开发者\n(Developer)" as Developer
+actor "管理员\n(Admin)" as Admin
+
+' 继承关系
+User <|-- Developer
+User <|-- Admin
+Guest <|-- User
+
+' ─── 用例包定义 ─────────────────────────────────────
+package "认证管理 (Authentication)" {
+  usecase "用户注册" as UC_Register
+  usecase "用户登录" as UC_Login
+  usecase "刷新 Token" as UC_Refresh
+  usecase "修改密码" as UC_ChangePassword
+  usecase "退出登录" as UC_Logout
+}
+
+package "工具使用 (Tool Usage)" {
+  usecase "浏览工具列表" as UC_BrowseTools
+  usecase "搜索工具" as UC_SearchTool
+  usecase "查看工具详情" as UC_ViewTool
+  usecase "调用工具 API" as UC_CallTool
+  usecase "查看调用历史" as UC_CallHistory
+}
+
+package "工具管理 (Tool Management)" {
+  usecase "注册新工具" as UC_RegisterTool
+  usecase "更新工具信息" as UC_UpdateTool
+  usecase "下线工具" as UC_DeprecateTool
+  usecase "查看工具统计" as UC_ToolStats
+}
+
+package "系统管理 (Administration)" {
+  usecase "管理用户账户" as UC_ManageUsers
+  usecase "审核工具申请" as UC_ReviewTool
+  usecase "查看系统健康" as UC_SystemHealth
+  usecase "配置系统参数" as UC_SystemConfig
+}
+
+' ─── 关联关系 ────────────────────────────────────────
+' 访客
+Guest --> UC_Register
+Guest --> UC_Login
+
+' 注册用户
+User --> UC_Refresh
+User --> UC_ChangePassword
+User --> UC_Logout
+User --> UC_BrowseTools
+User --> UC_SearchTool
+User --> UC_ViewTool
+User --> UC_CallTool
+User --> UC_CallHistory
+
+' 开发者额外用例
+Developer --> UC_RegisterTool
+Developer --> UC_UpdateTool
+Developer --> UC_DeprecateTool
+Developer --> UC_ToolStats
+
+' 管理员额外用例
+Admin --> UC_ManageUsers
+Admin --> UC_ReviewTool
+Admin --> UC_SystemHealth
+Admin --> UC_SystemConfig
+
+' ─── 包含/扩展关系 ─────────────────────────────────
+UC_CallTool ..> UC_Login : <<include>>
+UC_SearchTool ..> UC_BrowseTools : <<extend>>
+UC_RegisterTool ..> UC_ReviewTool : <<extend>>
+
+' ─── 注释 ──────────────────────────────────────────
+note right of UC_CallTool
+  调用工具 API 时：
+  1. Gateway 验证 JWT Token
+  2. 检查限流（令牌桶算法）
+  3. 路由到目标工具服务
+end note
+
+note right of UC_Register
+  注册时：
+  1. 邮箱格式验证
+  2. 密码强度检查
+  3. bcrypt 哈希存储
+end note
+
+@enduml

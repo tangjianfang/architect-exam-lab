@@ -1,0 +1,107 @@
+name: 功能需求
+description: 提交新功能需求，关联软考考点
+title: "[FEAT] "
+labels: ["feature", "needs-review"]
+assignees:
+  - tangjianfang
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 📋 功能需求模板
+        请填写以下信息，帮助团队理解需求并关联考点。
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 需求描述
+      description: 请详细描述这个功能需求
+      placeholder: 描述需要实现的功能...
+    validations:
+      required: true
+
+  - type: textarea
+    id: user-story
+    attributes:
+      label: 用户故事
+      description: 以用户故事格式描述需求
+      value: |
+        **作为** (角色)
+        **我希望** (功能)
+        **以便** (价值/目的)
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: 验收标准
+      description: 列出功能完成的具体标准（可勾选列表）
+      placeholder: |
+        - [ ] 标准1
+        - [ ] 标准2
+        - [ ] 标准3
+    validations:
+      required: true
+
+  - type: dropdown
+    id: exam-knowledge-point
+    attributes:
+      label: 关联考点
+      description: 选择该需求关联的软考知识领域
+      options:
+        - 架构风格（微服务/SOA/管道过滤器）
+        - 设计模式（GoF 23种模式）
+        - 分布式系统（CAP/BASE/一致性）
+        - 安全架构（认证/授权/加密）
+        - UML建模（用例图/类图/时序图）
+        - 云原生（容器/K8s/Service Mesh）
+        - 软件工程（CI/CD/DevOps/测试）
+        - 性能优化（缓存/负载均衡/限流）
+        - 数据架构（数据库设计/ORM）
+        - 其他
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 优先级
+      options:
+        - P0 - 核心考点，必须实现
+        - P1 - 重要考点，应该实现
+        - P2 - 一般考点，可以实现
+        - P3 - 扩展内容，有时间再做
+    validations:
+      required: true
+
+  - type: textarea
+    id: architecture-impact
+    attributes:
+      label: 架构影响分析
+      description: 分析该功能对系统架构的影响
+      placeholder: |
+        **影响的组件/服务：**
+        - 
+
+        **接口变更：**
+        - 
+
+        **数据模型变更：**
+        - 
+
+        **质量属性影响：**
+        - 性能：
+        - 可用性：
+        - 安全性：
+        - 可维护性：
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: 补充信息
+      description: 任何其他相关信息、参考资料或截图
+    validations:
+      required: false

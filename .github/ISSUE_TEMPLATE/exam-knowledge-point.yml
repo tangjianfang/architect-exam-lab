@@ -1,0 +1,120 @@
+name: 考点复现任务
+description: 创建考点复现实践任务，将软考知识点落地到项目代码
+title: "[EXAM] "
+labels: ["exam-point", "learning"]
+assignees:
+  - tangjianfang
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 📚 考点复现 Issue 模板
+        通过构建具体功能来复现软考系统架构设计师的核心考点，做到以战代练。
+
+  - type: input
+    id: knowledge-point-name
+    attributes:
+      label: 考点名称
+      description: 软考考点的具体名称
+      placeholder: "例：策略模式（Strategy Pattern）"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: module
+    attributes:
+      label: 所属模块
+      description: 该考点属于哪个知识模块
+      options:
+        - 架构基础（架构风格/质量属性/评估方法）
+        - UML建模（用例图/类图/时序图/组件图/部署图）
+        - 分布式系统（CAP/BASE/一致性/分布式事务）
+        - 安全架构（认证/授权/加密/攻击防御）
+        - 软件工程（开发模型/测试/配置管理）
+        - 云原生（容器/微服务/Service Mesh/Serverless）
+        - 设计模式（创建型/结构型/行为型）
+        - 数据架构（关系型/NoSQL/缓存/消息队列）
+        - 性能工程（性能测试/优化/容量规划）
+    validations:
+      required: true
+
+  - type: textarea
+    id: knowledge-description
+    attributes:
+      label: 考点描述
+      description: 详细描述这个考点的核心内容、原理和考试重点
+      placeholder: |
+        **核心概念：**
+
+        **考试重点：**
+
+        **常见考题类型：**
+        1. 
+        2. 
+    validations:
+      required: true
+
+  - type: textarea
+    id: practice-tasks
+    attributes:
+      label: 实践任务
+      description: 在项目中如何通过编码复现这个考点
+      value: |
+        - [ ] 任务1：
+        - [ ] 任务2：
+        - [ ] 任务3：
+        - [ ] 编写对应的单元测试
+        - [ ] 添加考点注释说明
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-output
+    attributes:
+      label: 预期产出
+      description: 完成该考点复现后应该产出哪些内容
+      placeholder: |
+        1. 代码文件：`packages/.../xxx.ts`
+        2. 测试文件：`packages/.../xxx.test.ts`
+        3. 文档更新：`docs/...`
+        4. ADR 记录（如涉及架构决策）
+    validations:
+      required: true
+
+  - type: textarea
+    id: reference-materials
+    attributes:
+      label: 参考资料
+      description: 相关的学习资料、官方文档或教材章节
+      placeholder: |
+        - 《系统架构设计师教程》第X章
+        - 设计模式官方说明
+        - 相关 RFC/标准文档
+    validations:
+      required: false
+
+  - type: dropdown
+    id: difficulty
+    attributes:
+      label: 难度评级
+      options:
+        - ⭐ 入门（基础概念理解）
+        - ⭐⭐ 初级（简单实现）
+        - ⭐⭐⭐ 中级（综合应用）
+        - ⭐⭐⭐⭐ 高级（复杂场景）
+        - ⭐⭐⭐⭐⭐ 专家（论文级别）
+    validations:
+      required: true
+
+  - type: dropdown
+    id: exam-frequency
+    attributes:
+      label: 考试频率
+      description: 该考点在历年真题中出现的频率
+      options:
+        - 高频（几乎每年必考）
+        - 中频（隔年出现）
+        - 低频（偶尔出现）
+        - 新增（2024-2025新考纲）
+    validations:
+      required: false
