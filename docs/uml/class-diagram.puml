@@ -1,0 +1,214 @@
+@startuml 核心领域模型类图
+
+' 考点：UML 类图 (Class Diagram)
+' 描述：在线工具聚合平台核心领域模型
+' 作者：architect-exam-lab
+
+title 在线工具聚合平台 - 核心领域模型类图
+
+skinparam classAttributeIconSize 0
+skinparam class {
+  BackgroundColor LightBlue
+  BorderColor DarkBlue
+  ArrowColor DarkBlue
+}
+
+' ─── 枚举类型 ──────────────────────────────────────
+enum UserRole {
+  ADMIN
+  DEVELOPER
+  USER
+}
+
+enum ToolStatus {
+  PENDING
+  ACTIVE
+  DEPRECATED
+  INACTIVE
+}
+
+enum ExecutionStatus {
+  RUNNING
+  SUCCESS
+  FAILED
+  TIMEOUT
+}
+
+' ─── 核心实体类 ─────────────────────────────────────
+class User {
+  - id: string
+  - email: string
+  - username: string
+  - passwordHash: string
+  - role: UserRole
+  - isActive: boolean
+  - createdAt: Date
+  - updatedAt: Date
+  --
+  + validatePassword(plain: string): Promise<boolean>
+  + toSafeObject(): SafeUser
+}
+
+class UserSession {
+  - id: string
+  - userId: string
+  - refreshToken: string
+  - tokenVersion: number
+  - expiresAt: Date
+  - createdAt: Date
+  --
+  + isExpired(): boolean
+}
+
+class Tool {
+  - id: string
+  - name: string
+  - description: string
+  - endpoint: string
+  - version: string
+  - status: ToolStatus
+  - tags: string[]
+  - ownerId: string
+  - healthCheckUrl: string
+  - metadata: JSON
+  - createdAt: Date
+  - updatedAt: Date
+  --
+  + isCallable(): boolean
+  + toPublicInfo(): PublicTool
+}
+
+class ToolExecution {
+  - id: string
+  - toolId: string
+  - userId: string
+  - input: JSON
+  - output: JSON
+  - duration: number
+  - status: ExecutionStatus
+  - errorMessage: string | null
+  - createdAt: Date
+  --
+  + getDurationMs(): number
+}
+
+class AuditLog {
+  - id: string
+  - userId: string | null
+  - action: string
+  - resource: string
+  - resourceId: string | null
+  - ipAddress: string
+  - userAgent: string
+  - createdAt: Date
+}
+
+' ─── 值对象 ────────────────────────────────────────
+class ApiResponse<T> {
+  + success: boolean
+  + data: T | null
+  + error: ApiError | null
+  + timestamp: string
+  --
+  + {static} ok<T>(data: T): ApiResponse<T>
+  + {static} fail(error: ApiError): ApiResponse<never>
+}
+
+class ApiError {
+  + code: string
+  + message: string
+  + details: unknown | null
+  --
+  + {static} unauthorized(): ApiError
+  + {static} notFound(resource: string): ApiError
+  + {static} rateLimited(): ApiError
+}
+
+class ServiceHealth {
+  + service: string
+  + status: "healthy" | "degraded" | "unhealthy"
+  + latencyMs: number
+  + lastChecked: Date
+  + details: Record<string, unknown>
+}
+
+' ─── 接口定义 ──────────────────────────────────────
+interface IUserRepository {
+  + findById(id: string): Promise<User | null>
+  + findByEmail(email: string): Promise<User | null>
+  + create(data: CreateUserDto): Promise<User>
+  + update(id: string, data: UpdateUserDto): Promise<User>
+  + delete(id: string): Promise<void>
+}
+
+interface IToolRepository {
+  + findById(id: string): Promise<Tool | null>
+  + findByName(name: string): Promise<Tool | null>
+  + findAll(filter?: ToolFilter): Promise<Tool[]>
+  + create(data: CreateToolDto): Promise<Tool>
+  + updateStatus(id: string, status: ToolStatus): Promise<Tool>
+}
+
+interface ICacheStrategy {
+  + get(key: string): Promise<string | null>
+  + set(key: string, value: string, ttl?: number): Promise<void>
+  + del(key: string): Promise<void>
+  + exists(key: string): Promise<boolean>
+}
+
+' ─── Repository 实现 ────────────────────────────────
+class PrismaUserRepository {
+  - prisma: PrismaClient
+  --
+  + findById(id: string): Promise<User | null>
+  + findByEmail(email: string): Promise<User | null>
+  + create(data: CreateUserDto): Promise<User>
+  + update(id: string, data: UpdateUserDto): Promise<User>
+  + delete(id: string): Promise<void>
+}
+
+class PrismaToolRepository {
+  - prisma: PrismaClient
+  --
+  + findById(id: string): Promise<Tool | null>
+  + findByName(name: string): Promise<Tool | null>
+  + findAll(filter?: ToolFilter): Promise<Tool[]>
+  + create(data: CreateToolDto): Promise<Tool>
+  + updateStatus(id: string, status: ToolStatus): Promise<Tool>
+}
+
+' 设计模式：策略模式 (Strategy Pattern)
+class MemoryCacheStrategy {
+  - store: Map<string, {value: string; expiresAt: number}>
+  --
+  + get(key: string): Promise<string | null>
+  + set(key: string, value: string, ttl?: number): Promise<void>
+  + del(key: string): Promise<void>
+  + exists(key: string): Promise<boolean>
+}
+
+class RedisCacheStrategy {
+  - client: RedisClient
+  --
+  + get(key: string): Promise<string | null>
+  + set(key: string, value: string, ttl?: number): Promise<void>
+  + del(key: string): Promise<void>
+  + exists(key: string): Promise<boolean>
+}
+
+' ─── 关联关系 ────────────────────────────────────────
+User "1" --> "0..*" UserSession : owns
+User "1" --> "0..*" Tool : registers
+User "1" --> "0..*" ToolExecution : executes
+Tool "1" --> "0..*" ToolExecution : is used in
+
+User --> UserRole
+Tool --> ToolStatus
+ToolExecution --> ExecutionStatus
+
+IUserRepository <|.. PrismaUserRepository
+IToolRepository <|.. PrismaToolRepository
+ICacheStrategy <|.. MemoryCacheStrategy
+ICacheStrategy <|.. RedisCacheStrategy
+
+@enduml

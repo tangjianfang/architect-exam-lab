@@ -1,0 +1,155 @@
+@startuml API请求处理时序图
+
+' 考点：UML 时序图 (Sequence Diagram)
+' 描述：用户调用工具 API 的完整请求处理流程
+' 作者：architect-exam-lab
+
+title 在线工具聚合平台 - API 请求处理时序图\n（用户调用工具 API 完整流程）
+
+skinparam sequenceMessageAlignment center
+skinparam sequence {
+  ArrowColor DarkBlue
+  ActorBorderColor DarkBlue
+  LifeLineBorderColor DarkBlue
+  ParticipantBackgroundColor LightYellow
+  ParticipantBorderColor DarkOrange
+}
+
+actor "用户\n(Client)" as Client
+participant "API Gateway\n:3000" as Gateway
+participant "认证中间件\n(Auth MW)" as AuthMW
+participant "限流中间件\n(Rate Limiter)" as RateLimiter
+participant "熔断器\n(Circuit Breaker)" as CB
+participant "Auth Service\n:3001" as AuthSvc
+participant "Tool Registry\n:3002" as Registry
+participant "Redis\n(Cache)" as Redis
+database "PostgreSQL\n(DB)" as DB
+
+== 第一阶段：用户登录，获取 Token ==
+
+Client -> Gateway: POST /auth/login\n{email, password}
+activate Gateway
+
+Gateway -> AuthMW: 检查是否需要认证
+note right of AuthMW: /auth/login 路径\n无需 Token 认证
+
+Gateway -> AuthSvc: POST /login\n{email, password}
+activate AuthSvc
+
+AuthSvc -> DB: findUserByEmail(email)
+activate DB
+DB --> AuthSvc: User 记录
+deactivate DB
+
+AuthSvc -> AuthSvc: bcrypt.compare(password, hash)
+note right of AuthSvc: 验证密码\n约 100ms（bcrypt cost=12）
+
+AuthSvc -> AuthSvc: jwt.sign({userId, role}, secret, {expiresIn: '15m'})
+note right of AuthSvc: 生成 Access Token（15分钟有效期）\n生成 Refresh Token（7天有效期）
+
+AuthSvc -> DB: saveRefreshToken(userId, refreshToken)
+activate DB
+DB --> AuthSvc: 保存成功
+deactivate DB
+
+AuthSvc --> Gateway: {accessToken, refreshToken}
+deactivate AuthSvc
+
+Gateway --> Client: 200 OK\n{accessToken, refreshToken}
+deactivate Gateway
+
+== 第二阶段：携带 Token 调用工具 API ==
+
+Client -> Gateway: GET /tools/text-converter/execute\nAuthorization: Bearer <accessToken>\n{text: "Hello World"}
+activate Gateway
+
+' 中间件 1：认证验证
+Gateway -> AuthMW: 验证 JWT Token
+activate AuthMW
+AuthMW -> AuthMW: jwt.verify(token, secret)
+note right of AuthMW: 只验证签名和过期时间\n不查询数据库（无状态）
+
+alt Token 无效或已过期
+  AuthMW --> Gateway: 401 Unauthorized
+  Gateway --> Client: 401 Unauthorized\n{error: "Token 无效"}
+end
+
+AuthMW --> Gateway: {userId, role} 用户信息注入 request
+deactivate AuthMW
+
+' 中间件 2：限流检查
+Gateway -> RateLimiter: 检查令牌桶\nkey: ip:192.168.1.1
+activate RateLimiter
+RateLimiter -> Redis: GET rate-limit:ip:192.168.1.1
+activate Redis
+Redis --> RateLimiter: 令牌数 = 85（< 100，未超限）
+deactivate Redis
+
+RateLimiter -> Redis: DECR rate-limit:ip:192.168.1.1
+activate Redis
+Redis --> RateLimiter: 84
+deactivate Redis
+
+RateLimiter --> Gateway: 通过（剩余 84 次）
+deactivate RateLimiter
+
+' 中间件 3：熔断器检查
+Gateway -> CB: 检查 tool-registry 熔断状态
+activate CB
+CB -> CB: circuitBreaker.state == CLOSED（正常）
+CB --> Gateway: 允许通过
+deactivate CB
+
+' 路由：查询工具注册信息
+Gateway -> Redis: GET toollab:tool:text-converter
+activate Redis
+
+alt 缓存命中
+  Redis --> Gateway: Tool 元数据（JSON）
+  note right of Redis: 缓存命中！\n直接返回，无需查询 Registry
+else 缓存未命中
+  Redis --> Gateway: null
+  deactivate Redis
+
+  Gateway -> Registry: GET /tools/text-converter
+  activate Registry
+
+  Registry -> DB: findToolByName('text-converter')
+  activate DB
+  DB --> Registry: Tool 记录
+  deactivate DB
+
+  Registry --> Gateway: Tool 元数据\n{endpoint: "http://tool-service:3010", ...}
+  deactivate Registry
+
+  Gateway -> Redis: SETEX toollab:tool:text-converter 300 <json>
+  activate Redis
+  note right of Redis: 缓存 5 分钟（TTL=300s）
+  Redis --> Gateway: OK
+  deactivate Redis
+end
+
+' 代理请求到工具服务
+Gateway -> Gateway: http-proxy → tool-service:3010
+note right of Gateway: 反向代理请求\n携带用户信息头部：\nX-User-Id: user123\nX-User-Role: USER
+
+Gateway --> Client: 200 OK\n{success: true, data: {result: "HELLO WORLD"}}
+deactivate Gateway
+
+== 第三阶段：Token 过期，刷新 Token ==
+
+Client -> Gateway: POST /auth/refresh\nCookie: refreshToken=<token>
+activate Gateway
+Gateway -> AuthSvc: POST /refresh\n{refreshToken}
+activate AuthSvc
+AuthSvc -> DB: findRefreshToken(token)
+activate DB
+DB --> AuthSvc: 有效
+deactivate DB
+AuthSvc -> AuthSvc: 生成新的 Access Token
+AuthSvc --> Gateway: {accessToken: <new-token>}
+deactivate AuthSvc
+Gateway --> Client: 200 OK\n{accessToken: <new-token>}
+deactivate Gateway
+
+@enduml

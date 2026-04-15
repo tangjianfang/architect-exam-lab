@@ -1,0 +1,11 @@
+# Code Owners
+# 格式：<路径模式> <GitHub用户名>
+
+*                           @tangjianfang
+docs/architecture/          @tangjianfang
+docs/adr/                   @tangjianfang
+.github/workflows/          @tangjianfang
+.github/copilot-*           @tangjianfang
+packages/auth-service/      @tangjianfang
+packages/gateway/           @tangjianfang
+infrastructure/             @tangjianfang

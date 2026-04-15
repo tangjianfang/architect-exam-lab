@@ -1,0 +1,86 @@
+name: 安全扫描
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # 每周一 UTC 时间 00:00 自动运行
+    - cron: '0 0 * * 1'
+
+# 考点：安全架构 - 代码安全扫描、依赖漏洞检测
+# 软考知识点：软件安全、DevSecOps
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  # ─── Job 1: CodeQL 代码安全扫描 ────────────────────────────────────────
+  codeql:
+    name: CodeQL 静态代码分析
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ['javascript-typescript']
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 初始化 CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-and-quality
+
+      - name: 自动构建（用于 CodeQL 分析）
+        uses: github/codeql-action/autobuild@v3
+
+      - name: 执行 CodeQL 安全分析
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
+
+  # ─── Job 2: 依赖漏洞检查 ───────────────────────────────────────────────
+  dependency-audit:
+    name: 依赖漏洞扫描（npm audit）
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: 设置 Node.js 环境
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: 执行依赖安全审计
+        run: pnpm audit --audit-level=high
+        continue-on-error: true
+
+      - name: 生成安全报告
+        if: always()
+        run: |
+          echo "## 🛡️ 依赖安全审计报告" >> $GITHUB_STEP_SUMMARY
+          pnpm audit --json 2>/dev/null | node -e "
+            const data = require('fs').readFileSync('/dev/stdin', 'utf8');
+            try {
+              const audit = JSON.parse(data);
+              const total = audit.metadata?.vulnerabilities?.total ?? 0;
+              console.log(\`总计发现 \${total} 个漏洞\`);
+            } catch(e) {
+              console.log('无法解析审计报告');
+            }
+          " >> $GITHUB_STEP_SUMMARY || echo "审计完成" >> $GITHUB_STEP_SUMMARY
