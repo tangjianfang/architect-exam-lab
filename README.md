@@ -8,7 +8,7 @@
 
 ## 在线展示与部署
 
-- 展示地址（部署后）：https://tangjianfang.github.io/architect-exam-lab/
+- 展示地址（部署后）：`https://<owner>.github.io/<repo>/`
 - 部署方式：GitHub Actions 工作流 `.github/workflows/deploy.yml`
 - 自动触发：`main` 分支变更 `site/**`、`README.md` 或 `deploy.yml`
 - 手动触发：GitHub Actions 页面选择 **部署展示页** → **Run workflow**
@@ -20,7 +20,7 @@
 2. 选择工作流 **部署展示页**。
 3. 点击 **Run workflow** 执行部署。
 4. 等待工作流成功后访问：
-   https://tangjianfang.github.io/architect-exam-lab/
+   `https://<owner>.github.io/<repo>/`
 
 ## 项目文档入口
 
