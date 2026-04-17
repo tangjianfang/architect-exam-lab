@@ -10,10 +10,40 @@ on:
 # 软考知识点：DevOps、持续集成、质量保证
 
 jobs:
+  # ─── Job 0: 环境前置检查 ───────────────────────────────────────────────
+  preflight:
+    name: CI 前置条件检查
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 检查 CI 所需根目录文件
+        id: check
+        run: |
+          required_files=("package.json" "pnpm-workspace.yaml" "pnpm-lock.yaml" "tests/architecture-check.sh")
+          missing=0
+          for file in "${required_files[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "缺少文件: $file"
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -eq 0 ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
   # ─── Job 1: 代码质量检查 ───────────────────────────────────────────────
   lint:
     name: 代码质量检查（Lint + TypeCheck）
     runs-on: ubuntu-latest
+    needs: preflight
+    if: needs.preflight.outputs.ready == 'true'
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -42,7 +72,8 @@ jobs:
   test:
     name: 单元测试 + 覆盖率检查
     runs-on: ubuntu-latest
-    needs: lint
+    needs: [preflight, lint]
+    if: needs.preflight.outputs.ready == 'true'
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -81,7 +112,8 @@ jobs:
   architecture-check:
     name: 架构边界检查（分层约束验证）
     runs-on: ubuntu-latest
-    needs: lint
+    needs: [preflight, lint]
+    if: needs.preflight.outputs.ready == 'true'
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -96,7 +128,8 @@ jobs:
   build:
     name: 构建检查
     runs-on: ubuntu-latest
-    needs: [test, architecture-check]
+    needs: [preflight, test, architecture-check]
+    if: needs.preflight.outputs.ready == 'true'
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -125,3 +158,14 @@ jobs:
           path: |
             packages/*/dist/
           retention-days: 3
+
+  # ─── Job 5: 前置条件未满足提示 ──────────────────────────────────────────
+  ci-not-ready:
+    name: CI 跳过提示
+    runs-on: ubuntu-latest
+    needs: preflight
+    if: needs.preflight.outputs.ready != 'true'
+    steps:
+      - name: 输出提示信息
+        run: |
+          echo "当前仓库缺少完整 monorepo 根配置（package.json / pnpm-workspace.yaml / pnpm-lock.yaml / tests/architecture-check.sh），已跳过 CI 检查。"
