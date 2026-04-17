@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main, develop]
 
+permissions:
+  contents: read
+
 # 考点：CI/CD 流水线设计
 # 软考知识点：DevOps、持续集成、质量保证
 
@@ -27,7 +30,7 @@ jobs:
           missing=0
           for file in "${required_files[@]}"; do
             if [ ! -f "$file" ]; then
-              echo "缺少文件: $file"
+              echo "::warning file=$file::CI 前置检查缺少必需文件: $file"
               missing=1
             fi
           done
@@ -72,8 +75,7 @@ jobs:
   test:
     name: 单元测试 + 覆盖率检查
     runs-on: ubuntu-latest
-    needs: [preflight, lint]
-    if: needs.preflight.outputs.ready == 'true'
+    needs: lint
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -112,8 +114,7 @@ jobs:
   architecture-check:
     name: 架构边界检查（分层约束验证）
     runs-on: ubuntu-latest
-    needs: [preflight, lint]
-    if: needs.preflight.outputs.ready == 'true'
+    needs: lint
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -128,8 +129,7 @@ jobs:
   build:
     name: 构建检查
     runs-on: ubuntu-latest
-    needs: [preflight, test, architecture-check]
-    if: needs.preflight.outputs.ready == 'true'
+    needs: [test, architecture-check]
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -168,4 +168,4 @@ jobs:
     steps:
       - name: 输出提示信息
         run: |
-          echo "当前仓库缺少完整 monorepo 根配置（package.json / pnpm-workspace.yaml / pnpm-lock.yaml / tests/architecture-check.sh），已跳过 CI 检查。"
+          echo "当前仓库未满足 CI 前置文件检查，已跳过 pnpm 相关校验，请查看 preflight job 的 warning 明细。"
