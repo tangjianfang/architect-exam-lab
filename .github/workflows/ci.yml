@@ -26,16 +26,16 @@ jobs:
       - name: 检查 CI 所需根目录文件
         id: check
         run: |
-          required_files=("package.json" "pnpm-workspace.yaml" "pnpm-lock.yaml" "tests/architecture-check.sh")
-          missing=0
+          required_files=("package.json" "pnpm-workspace.yaml" "pnpm-lock.yaml")
+          missing_count=0
           for file in "${required_files[@]}"; do
             if [ ! -f "$file" ]; then
-              echo "::warning file=$file::CI 前置检查缺少必需文件: $file"
-              missing=1
+              echo "::warning file=$file::缺少必需文件: $file"
+              missing_count=$((missing_count + 1))
             fi
           done
 
-          if [ "$missing" -eq 0 ]; then
+          if [ "$missing_count" -eq 0 ]; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
@@ -75,7 +75,7 @@ jobs:
   test:
     name: 单元测试 + 覆盖率检查
     runs-on: ubuntu-latest
-    needs: lint
+    needs: [preflight, lint]
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -114,10 +114,13 @@ jobs:
   architecture-check:
     name: 架构边界检查（分层约束验证）
     runs-on: ubuntu-latest
-    needs: lint
+    needs: [preflight, lint]
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
+
+      - name: 检查架构检查脚本是否存在
+        run: test -f tests/architecture-check.sh
 
       - name: 赋予脚本执行权限
         run: chmod +x tests/architecture-check.sh
@@ -129,7 +132,7 @@ jobs:
   build:
     name: 构建检查
     runs-on: ubuntu-latest
-    needs: [test, architecture-check]
+    needs: [preflight, test, architecture-check]
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -168,4 +171,4 @@ jobs:
     steps:
       - name: 输出提示信息
         run: |
-          echo "当前仓库未满足 CI 前置文件检查，已跳过 pnpm 相关校验，请查看 preflight job 的 warning 明细。"
+          echo "当前仓库未满足 CI 前置文件检查，已跳过 pnpm 相关校验，请查看「CI 前置条件检查」作业的 warning 明细。"
