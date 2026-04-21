@@ -48,49 +48,52 @@ jobs:
   dependency-audit:
     name: 依赖漏洞扫描（npm audit）
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('package.json') != '' }}
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
 
+      - name: 检查根目录 package.json
+        id: root-manifest
+        run: |
+          if [ -f package.json ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: 安装 pnpm
+        if: steps.root-manifest.outputs.exists == 'true'
         uses: pnpm/action-setup@v4
         with:
           version: 9
 
       - name: 设置 Node.js 环境
+        if: steps.root-manifest.outputs.exists == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
 
       - name: 安装依赖
+        if: steps.root-manifest.outputs.exists == 'true'
         run: pnpm install --frozen-lockfile
 
       - name: 执行依赖安全审计
+        if: steps.root-manifest.outputs.exists == 'true'
         run: pnpm audit --audit-level=high
         continue-on-error: true
 
       - name: 生成安全报告
-        if: always()
+        if: steps.root-manifest.outputs.exists == 'true'
         run: |
-          echo "## 🛡️ 依赖安全审计报告" >> $GITHUB_STEP_SUMMARY
-          pnpm audit --json 2>/dev/null | node -e "
-            const data = require('fs').readFileSync('/dev/stdin', 'utf8');
-            try {
-              const audit = JSON.parse(data);
-              const total = audit.metadata?.vulnerabilities?.total ?? 0;
-              console.log(\`总计发现 \${total} 个漏洞\`);
-            } catch(e) {
-              console.log('无法解析审计报告');
-            }
-          " >> $GITHUB_STEP_SUMMARY || echo "审计完成" >> $GITHUB_STEP_SUMMARY
+          echo "## 🛡️ 依赖安全审计报告" >> "$GITHUB_STEP_SUMMARY"
+          if pnpm audit --json > /tmp/pnpm-audit.json 2>/dev/null; then
+            node -e 'const fs=require("node:fs"); const data=fs.readFileSync("/tmp/pnpm-audit.json","utf8"); try { const audit=JSON.parse(data); const total=audit.metadata?.vulnerabilities?.total ?? 0; console.log("总计发现 " + total + " 个漏洞"); } catch { console.log("无法解析审计报告"); }' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "审计完成（发现漏洞或审计命令返回非零）" >> "$GITHUB_STEP_SUMMARY"
+          fi
 
-  dependency-audit-skipped:
-    name: 依赖漏洞扫描（跳过说明）
-    runs-on: ubuntu-latest
-    if: ${{ hashFiles('package.json') == '' }}
-    steps:
       - name: 输出跳过原因
+        if: steps.root-manifest.outputs.exists != 'true'
         run: |
           echo "仓库根目录缺少 package.json，已跳过 pnpm audit。"
