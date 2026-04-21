@@ -1,6 +1,6 @@
 # architect-exam-lab
 
-软考系统架构设计师（高级）备考实战仓库 — 当前已精简为纯静态展示页形态，用于稳定展示备考资料与架构文档。
+软考系统架构设计师（高级）备考资料仓库 — 当前为纯静态展示页形态，聚焦文档化知识点与架构参考内容。
 
 [![CI 持续集成](https://github.com/tangjianfang/architect-exam-lab/workflows/CI%20%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90/badge.svg)](https://github.com/tangjianfang/architect-exam-lab/actions/workflows/ci.yml)
 [![安全扫描](https://github.com/tangjianfang/architect-exam-lab/workflows/%E5%AE%89%E5%85%A8%E6%89%AB%E6%8F%8F/badge.svg)](https://github.com/tangjianfang/architect-exam-lab/actions/workflows/security.yml)

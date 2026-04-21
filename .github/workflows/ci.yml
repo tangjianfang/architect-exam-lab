@@ -35,4 +35,7 @@ jobs:
         run: |
           grep -q '<!doctype html>' site/index.html
           grep -q '<title>' site/index.html
+          grep -q '<h1>architect-exam-lab</h1>' site/index.html
+          grep -q '<h2>快速入口</h2>' site/index.html
+          grep -q '<h2>部署说明</h2>' site/index.html
           grep -q '</html>' site/index.html
