@@ -3,125 +3,33 @@ name: CI 持续集成
 on:
   push:
     branches: [main, develop]
+    paths:
+      - 'site/**'
+      - '.github/workflows/ci.yml'
+      - 'README.md'
   pull_request:
     branches: [main, develop]
+    paths:
+      - 'site/**'
+      - '.github/workflows/ci.yml'
+      - 'README.md'
 
 # 考点：CI/CD 流水线设计
 # 软考知识点：DevOps、持续集成、质量保证
 
 jobs:
-  # ─── Job 1: 代码质量检查 ───────────────────────────────────────────────
-  lint:
-    name: 代码质量检查（Lint + TypeCheck）
+  static-check:
+    name: 静态页面校验
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 安装 pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
+      - name: 检查站点入口文件
+        run: test -f site/index.html
 
-      - name: 设置 Node.js 环境
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: 安装依赖
-        run: pnpm install --frozen-lockfile
-
-      - name: ESLint 代码风格检查
-        run: pnpm lint
-
-      - name: TypeScript 类型检查
-        run: pnpm typecheck
-
-  # ─── Job 2: 单元测试 + 覆盖率 ──────────────────────────────────────────
-  test:
-    name: 单元测试 + 覆盖率检查
-    runs-on: ubuntu-latest
-    needs: lint
-    steps:
-      - name: 检出代码
-        uses: actions/checkout@v4
-
-      - name: 安装 pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
-      - name: 设置 Node.js 环境
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: 安装依赖
-        run: pnpm install --frozen-lockfile
-
-      - name: 运行单元测试并生成覆盖率报告
-        run: pnpm test:coverage
-
-      - name: 检查覆盖率阈值（≥ 80%）
+      - name: 检查基础 HTML 结构
         run: |
-          echo "验证覆盖率是否达到 80% 阈值..."
-          # Vitest 配置中已设置 thresholds，此步骤确保结果可见
-
-      - name: 上传覆盖率报告
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: coverage-report
-          path: coverage/
-          retention-days: 7
-
-  # ─── Job 3: 架构边界检查 ───────────────────────────────────────────────
-  architecture-check:
-    name: 架构边界检查（分层约束验证）
-    runs-on: ubuntu-latest
-    needs: lint
-    steps:
-      - name: 检出代码
-        uses: actions/checkout@v4
-
-      - name: 赋予脚本执行权限
-        run: chmod +x tests/architecture-check.sh
-
-      - name: 执行架构边界检查
-        run: bash tests/architecture-check.sh
-
-  # ─── Job 4: 构建检查 ───────────────────────────────────────────────────
-  build:
-    name: 构建检查
-    runs-on: ubuntu-latest
-    needs: [test, architecture-check]
-    steps:
-      - name: 检出代码
-        uses: actions/checkout@v4
-
-      - name: 安装 pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
-      - name: 设置 Node.js 环境
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: 安装依赖
-        run: pnpm install --frozen-lockfile
-
-      - name: 构建所有包
-        run: pnpm build
-
-      - name: 上传构建产物
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-artifacts
-          path: |
-            packages/*/dist/
-          retention-days: 3
+          grep -q '<!doctype html>' site/index.html
+          grep -q '<title>' site/index.html
+          grep -q '</html>' site/index.html

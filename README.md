@@ -1,6 +1,6 @@
 # architect-exam-lab
 
-软考系统架构设计师（高级）备考实战仓库 — 以战代练，用微服务架构项目复现核心考点。
+软考系统架构设计师（高级）备考实战仓库 — 当前已精简为纯静态展示页形态，用于稳定展示备考资料与架构文档。
 
 [![CI 持续集成](https://github.com/tangjianfang/architect-exam-lab/workflows/CI%20%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90/badge.svg)](https://github.com/tangjianfang/architect-exam-lab/actions/workflows/ci.yml)
 [![安全扫描](https://github.com/tangjianfang/architect-exam-lab/workflows/%E5%AE%89%E5%85%A8%E6%89%AB%E6%8F%8F/badge.svg)](https://github.com/tangjianfang/architect-exam-lab/actions/workflows/security.yml)
@@ -15,11 +15,12 @@
 
 ## 使用说明
 
-1. 打开 GitHub Actions 页面：  
+1. 本仓库已移除运行时依赖，页面为纯静态资源（`site/index.html`）。
+2. 打开 GitHub Actions 页面：  
    https://github.com/tangjianfang/architect-exam-lab/actions
-2. 选择工作流 **部署展示页**。
-3. 点击 **Run workflow** 执行部署。
-4. 等待工作流成功后访问：
+3. 选择工作流 **部署展示页**。
+4. 点击 **Run workflow** 执行部署。
+5. 等待工作流成功后访问：
    `https://tangjianfang.github.io/architect-exam-lab/`
 
 ## 项目文档入口
