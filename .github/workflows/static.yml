@@ -2,11 +2,7 @@
 name: Deploy static content to Pages
 
 on:
-  # Runs on pushes targeting the default branch
-  push:
-    branches: ["main"]
-
-  # Allows you to run this workflow manually from the Actions tab
+  # 仅保留手动触发，避免与 deploy.yml 自动部署冲突
   workflow_dispatch:
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
@@ -36,8 +32,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository
-          path: '.'
+          # Upload static site only
+          path: './site'
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@v4

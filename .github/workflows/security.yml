@@ -48,6 +48,7 @@ jobs:
   dependency-audit:
     name: 依赖漏洞扫描（npm audit）
     runs-on: ubuntu-latest
+    if: ${{ hashFiles('package.json') != '' }}
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -84,3 +85,12 @@ jobs:
               console.log('无法解析审计报告');
             }
           " >> $GITHUB_STEP_SUMMARY || echo "审计完成" >> $GITHUB_STEP_SUMMARY
+
+  dependency-audit-skipped:
+    name: 依赖漏洞扫描（跳过说明）
+    runs-on: ubuntu-latest
+    if: ${{ hashFiles('package.json') == '' }}
+    steps:
+      - name: 输出跳过原因
+        run: |
+          echo "仓库根目录缺少 package.json，已跳过 pnpm audit。"
