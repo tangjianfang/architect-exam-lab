@@ -33,7 +33,7 @@ jobs:
 
       - name: 检查基础 HTML 结构
         run: |
-          grep -q '<!doctype html>' site/index.html
+          grep -iq '<!doctype html>' site/index.html
           grep -q '<title>' site/index.html
           grep -q '<h1>architect-exam-lab</h1>' site/index.html
           grep -q '<h2>快速入口</h2>' site/index.html
